@@ -1,23 +1,20 @@
 # Gyad - Get Your API Data
 
-## Description
-*soon*
 
-
-## Setup
+## Dev Setup
 **Step 1: Clone the repository**
 ```bash
 git clone https://github.com/ximmanuel/gyad.git
 ```
 
-**Step 2: Rename the `.env.example` file to `.env` and adjust the values**
-```bash
-cp .env.example .env
-```
-
-**Step 3: Run postgres docker container**
+**Step 2: Run postgres docker container**
 ```bash
 docker run --name postgresql -p 5432:5432 -e POSTGRES_PASSWORD=123456 -d postgres
+```
+
+**Step 3: Rename the `.env.example` file to `.env` and adjust the values**
+```bash
+cp .env.example .env
 ```
 
 **Step 4: Run the application**
