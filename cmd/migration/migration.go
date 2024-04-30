@@ -17,7 +17,7 @@ import (
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: go run migration.go create <migration_name> | migrate <all/migration_name>")
+		fmt.Println("Usage: go run cmd/migration/migration.go create <migration_name> | migrate <all/migration_name> | delete <migration_name>")
 		os.Exit(1)
 	}
 
@@ -29,13 +29,15 @@ func main() {
 	}
 
 	switch command {
-		case "create":
-			createMigration(migrationName)
-		case "migrate":
-			migrate(migrationName)
-		default:
-			fmt.Println("Invalid command. Use 'create' or 'migrate'.")
-			os.Exit(1)
+	case "create":
+		createMigration(migrationName)
+	case "migrate":
+		migrate(migrationName)
+	case "delete":
+		rollbackMigration(migrationName)
+	default:
+		fmt.Println("Invalid command. Use 'create', 'migrate', or 'delete'.")
+		os.Exit(1)
 	}
 }
 
@@ -104,6 +106,44 @@ func migrate(argument string) {
 	}
 }
 
+// rollbackMigration rolls back all or specific migrations from the database.
+func rollbackMigration(argument string) {
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
+	dbName := os.Getenv("DB_NAME")
+	dbSSL := os.Getenv("DB_SSL")
+
+	connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		dbHost, dbPort, dbUser, dbPass, dbName, dbSSL)
+
+	db, err := sql.Open("postgres", connectionString)
+	if err != nil {
+		log.Fatalf("Could not connect to database: %v", err)
+	}
+	defer db.Close()
+
+	files, err := ioutil.ReadDir("./migrations")
+	if err != nil {
+		log.Fatalf("Could not read migrations directory: %v", err)
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].Name() < files[j].Name()
+	})
+
+	for _, file := range files {
+		if strings.Contains(file.Name(), argument) {
+			fmt.Printf("Rolling back migration: %s\n", file.Name())
+			err := executeSQLDown(db, filepath.Join("./migrations", file.Name()))
+			if err != nil {
+				log.Fatalf("Failed to rollback migration %s: %v", file.Name(), err)
+			}
+		}
+	}
+}
+
 // executeSQLFile reads the SQL file and executes the statements in it.
 func executeSQLFile(db *sql.DB, filepath string) error {
 	content, err := ioutil.ReadFile(filepath)
@@ -113,6 +153,29 @@ func executeSQLFile(db *sql.DB, filepath string) error {
 
 	requests := strings.Split(string(content), "-- Down migration")
 	sqlStatements := strings.Split(requests[0], ";")
+
+	for _, statement := range sqlStatements {
+		statement = strings.TrimSpace(statement)
+		if statement == "" {
+			continue
+		}
+		_, err := db.Exec(statement)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// executeSQLDown reads the SQL file and executes the down migration statements.
+func executeSQLDown(db *sql.DB, filepath string) error {
+	content, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return err
+	}
+
+	requests := strings.Split(string(content), "-- Down migration")
+	sqlStatements := strings.Split(requests[1], ";")
 
 	for _, statement := range sqlStatements {
 		statement = strings.TrimSpace(statement)
