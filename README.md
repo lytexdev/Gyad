@@ -4,7 +4,7 @@
 ## Dev Setup
 **Step 1: Clone the repository**
 ```bash
-git clone https://github.com/ximmanuel/gyad.git
+git clone git@github.com:ximmanuel/Gyad.git
 ```
 
 **Step 2: Run postgres docker container**
@@ -27,21 +27,21 @@ go run cmd/main.go
 
 **Create Migration**
 ```bash
-go run cmd/migration/migration.go create bober
+go run ./migration create bober
 ```
 
 **Run all migrations**:
 ```bash
-go run cmd/migration/migration.go migrate all
+go run ./migration migrate all
 ```
 Migrations are executed one after the other based on the timestamps.
 
 **Run specific migratrion**:
 ```bash
-go run cmd/migration/migration.go migrate bober
+go run ./migration migrate bober
 ```
 
-**Rollback/Delete specific migratrion**:
+**Rollback specific migration**:
 ```bash
-go run cmd/migration/migration.go delete bober
+go run ./migration rollback bober
 ```

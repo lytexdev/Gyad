@@ -181,7 +181,7 @@ func executeSQLDown(db *sql.DB, filepath string) error {
 
 func askForConfirmation(question string) bool {
     fmt.Println(question + " [y/n]: ")
-	
+
     var response string
 
     _, err := fmt.Scanln(&response)
