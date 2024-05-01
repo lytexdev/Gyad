@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,7 +16,7 @@ import (
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: go run cmd/migration/migration.go create <migration_name> | migrate <all/migration_name> | delete <migration_name>")
+		fmt.Println("Usage: go run cmd/migration/migration.go create <migration_name> | migrate <all/migration_name> | rollback <migration_name>")
 		os.Exit(1)
 	}
 
@@ -33,18 +32,17 @@ func main() {
 		createMigration(migrationName)
 	case "migrate":
 		migrate(migrationName)
-	case "delete":
+	case "rollback":
 		rollbackMigration(migrationName)
 	default:
-		fmt.Println("Invalid command. Use 'create', 'migrate', or 'delete'.")
+		fmt.Println("Invalid command. Use 'create', 'migrate', or 'rollback'.")
 		os.Exit(1)
 	}
 }
 
-// createMigration creates a new migration file with the given name.
 func createMigration(migrationName string) {
-	timestamp := time.Now().Format("20060102150405")
 	migrationsDir := "./migrations"
+	timestamp := time.Now().Format("20060102150405")
 	filename := fmt.Sprintf("%s/%s_%s.sql", migrationsDir, timestamp, migrationName)
 
 	if _, err := os.Stat(migrationsDir); os.IsNotExist(err) {
@@ -68,17 +66,9 @@ func createMigration(migrationName string) {
 	fmt.Printf("Migration created at: %s\n", filename)
 }
 
-// migrate applies all or specific migrations to the database.
 func migrate(argument string) {
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASS")
-	dbName := os.Getenv("DB_NAME")
-	dbSSL := os.Getenv("DB_SSL")
-
 	connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		dbHost, dbPort, dbUser, dbPass, dbName, dbSSL)
+		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_NAME"), os.Getenv("DB_SSL"))
 
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
@@ -86,7 +76,7 @@ func migrate(argument string) {
 	}
 	defer db.Close()
 
-	files, err := ioutil.ReadDir("./migrations")
+	files, err := os.ReadDir("./migrations")
 	if err != nil {
 		log.Fatalf("Could not read migrations directory: %v", err)
 	}
@@ -106,47 +96,47 @@ func migrate(argument string) {
 	}
 }
 
-// rollbackMigration rolls back all or specific migrations from the database.
 func rollbackMigration(argument string) {
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASS")
-	dbName := os.Getenv("DB_NAME")
-	dbSSL := os.Getenv("DB_SSL")
+    connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+        os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_NAME"), os.Getenv("DB_SSL"))
 
-	connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		dbHost, dbPort, dbUser, dbPass, dbName, dbSSL)
+    db, err := sql.Open("postgres", connectionString)
+    if err != nil {
+        log.Fatalf("Could not connect to database: %v", err)
+    }
+    defer db.Close()
 
-	db, err := sql.Open("postgres", connectionString)
-	if err != nil {
-		log.Fatalf("Could not connect to database: %v", err)
-	}
-	defer db.Close()
+    files, err := os.ReadDir("./migrations")
+    if err != nil {
+        log.Fatalf("Could not read migrations directory: %v", err)
+    }
 
-	files, err := ioutil.ReadDir("./migrations")
-	if err != nil {
-		log.Fatalf("Could not read migrations directory: %v", err)
-	}
+    sort.Slice(files, func(i, j int) bool {
+        return files[i].Name() < files[j].Name()
+    })
 
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].Name() < files[j].Name()
-	})
+    for _, file := range files {
+        if strings.Contains(file.Name(), argument) {
+            fmt.Printf("Rolling back migration: %s\n", file.Name())
+            err := executeSQLDown(db, filepath.Join("./migrations", file.Name()))
+            if err != nil {
+                log.Fatalf("Failed to rollback migration %s: %v", file.Name(), err)
+            }
 
-	for _, file := range files {
-		if strings.Contains(file.Name(), argument) {
-			fmt.Printf("Rolling back migration: %s\n", file.Name())
-			err := executeSQLDown(db, filepath.Join("./migrations", file.Name()))
-			if err != nil {
-				log.Fatalf("Failed to rollback migration %s: %v", file.Name(), err)
-			}
-		}
-	}
+            if askForConfirmation(fmt.Sprintf("Do you want to delete the migration file %s?", file.Name())) {
+                err := os.Remove(filepath.Join("./migrations", file.Name()))
+                if err != nil {
+                    log.Printf("Failed to delete migration file: %v", err)
+                } else {
+                    fmt.Printf("Migration file %s deleted successfully.\n", file.Name())
+                }
+            }
+        }
+    }
 }
 
-// executeSQLFile reads the SQL file and executes the statements in it.
 func executeSQLFile(db *sql.DB, filepath string) error {
-	content, err := ioutil.ReadFile(filepath)
+	content, err := os.ReadFile(filepath)
 	if err != nil {
 		return err
 	}
@@ -167,9 +157,8 @@ func executeSQLFile(db *sql.DB, filepath string) error {
 	return nil
 }
 
-// executeSQLDown reads the SQL file and executes the down migration statements.
 func executeSQLDown(db *sql.DB, filepath string) error {
-	content, err := ioutil.ReadFile(filepath)
+	content, err := os.ReadFile(filepath)
 	if err != nil {
 		return err
 	}
@@ -188,4 +177,18 @@ func executeSQLDown(db *sql.DB, filepath string) error {
 		}
 	}
 	return nil
+}
+
+func askForConfirmation(question string) bool {
+    fmt.Println(question + " [y/n]: ")
+	
+    var response string
+
+    _, err := fmt.Scanln(&response)
+    if err != nil {
+        log.Printf("Invalid input: %v", err)
+        return false
+    }
+    response = strings.TrimSpace(response)
+    return strings.ToLower(response) == "y" || strings.ToLower(response) == "yes"
 }
