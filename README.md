@@ -1,7 +1,18 @@
 # Gyad - Get Your API Data
 
+## Overview
+A lightweight backend system built in Go designed to simplify the management and access to data through APIs.
 
-## Dev Setup
+## Features
+- **Database Migrations**: Easily create, manage, and rollback database migrations using simple command-line operations.
+- **TODO: API Controllers**: Facilitate and manage RESTful APIs that enable clients to interact with the backend.
+- **TODO: DAL**: A Database Abstraction Layer that abstracts and simplifies database interactions. 
+
+### Prerequisites
+- Go (version 1.15 or higher)
+- A PostgreSQL Database
+
+## Installation
 **Step 1: Clone the repository**
 ```bash
 git clone git@github.com:ximmanuel/Gyad.git
@@ -21,7 +32,6 @@ cp .env.example .env
 ```bash
 go run cmd/main.go
 ```
-
 
 ## Migration
 
@@ -45,3 +55,6 @@ go run ./migration migrate bober
 ```bash
 go run ./migration rollback bober
 ```
+
+## License
+Distributed under the Mozilla Public License - see the [LICENSE](LICENSE) file for details.
