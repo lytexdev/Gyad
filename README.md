@@ -5,10 +5,10 @@ A lightweight backend system built in Go designed to simplify the management and
 
 ## Features
 - **Database Migrations**: Easily create, manage, and rollback database migrations using simple command-line operations.
-- **TODO: API Controllers**: Facilitate and manage RESTful APIs that enable clients to interact with the backend.
-- **TODO: DAL**: A Database Abstraction Layer that abstracts and simplifies database interactions. 
+- ***TODO*: API Controllers**: Facilitate and manage RESTful APIs that enable clients to interact with the backend.
+- ***TODO*: DAL**: A Database Abstraction Layer that abstracts and simplifies database interactions. 
 
-### Prerequisites
+## Prerequisites
 - Go (version 1.15 or higher)
 - A PostgreSQL Database
 
