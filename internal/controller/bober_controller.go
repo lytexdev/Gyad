@@ -9,10 +9,10 @@ import (
 
 type BoberController struct {
     BaseController
-    BoberRepo repository.BoberRepository
+    BoberRepo repository.BobersRepository
 }
 
-func NewBoberController(repo repository.BoberRepository) *BoberController {
+func NewBoberController(repo repository.BobersRepository) *BoberController {
     return &BoberController{
         BoberRepo: repo,
     }
