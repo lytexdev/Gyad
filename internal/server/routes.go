@@ -1,13 +1,12 @@
 package server
 
 import (
-	"net/http"
-
 	"gyad/internal/controller"
+	"github.com/gorilla/mux"
 )
 
-// ConfigureRoutes sets up the routes for the server
-func ConfigureRoutes(mux *http.ServeMux) {
-	boberController := controller.BoberController{}
-	mux.HandleFunc("/api/bober", boberController.GetBober)
+// ConfigureRoutes sets up the routes for the server using Gorilla Mux
+func ConfigureRoutes(router *mux.Router) {
+	boberController := controller.NewBoberController()
+	router.HandleFunc("/api/bober", boberController.GetBober).Methods("GET")
 }

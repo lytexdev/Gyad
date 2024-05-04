@@ -3,25 +3,24 @@ package server
 import (
 	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type Server struct {
-	Router *http.ServeMux
-    dbConn *sql.DB
+	Router *mux.Router
+	dbConn *sql.DB
 }
 
-func NewServer(db *sql.DB) *Server {
-	fmt.Println("Creating new server")
+func StartServer(db *sql.DB) *Server {
+	fmt.Println("Starting HTTP server...")
+	router := mux.NewRouter()
 	server := &Server{
-		Router: http.NewServeMux(),
+		Router: router,
 		dbConn: db,
 	}
-	ConfigureRoutes(server.Router)
-	return server
-}
+	ConfigureRoutes(router)
 
-func (s *Server) Run(port string) {
-	log.Fatal(http.ListenAndServe(port, s.Router))
+	fmt.Println("Server started successfully!")
+	return server
 }
