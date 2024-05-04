@@ -32,7 +32,7 @@ func main() {
 
     fields := collectFields(reader)
 
-    ensureDirectories([]string{"models", "repository"})
+    ensureDirectories([]string{"models", "repositories"})
 
     if err := generateModel(entityName, tableName, fields); err != nil {
         fmt.Printf("Error generating model: %v\n", err)
@@ -57,15 +57,16 @@ func collectFields(reader *bufio.Reader) []Field {
             break
         }
 
-        fmt.Println("Enter data type (int, string, float, bool, or foreign key like User:ID): ")
+        fmt.Print("Enter data type (int, string, float, bool, date etc.): ")
         dataType, _ := reader.ReadString('\n')
         dataType = strings.TrimSpace(dataType)
 
-        foreignKey := ""
-        if strings.Contains(dataType, ":") {
-            parts := strings.Split(dataType, ":")
-            dataType = fmt.Sprintf("*%s", parts[0])
-            foreignKey = parts[1]
+        var foreignKey string
+        fmt.Print("Is this field a foreign key? (Enter referenced model and field, e.g., User:ID, or type no): ")
+        fkInput, _ := reader.ReadString('\n')
+        fkInput = strings.TrimSpace(fkInput)
+        if fkInput != "no" {
+            foreignKey = fkInput
         }
 
         fmt.Print("Can the field be nullable? (yes/no): ")
@@ -88,27 +89,29 @@ func ensureDirectories(dirs []string) {
 func generateModel(entityName, tableName string, fields []Field) error {
     modelTemplate := `package models
 
-type {{.EntityName}} struct {
-    ID   string ` + "`db:\"id\"`" + `
-    {{- range .Fields}}
-    {{.Name}} {{.Type}} ` + "`db:\"{{.Name}}\"{{if eq .IsNullable \"yes\"}} nullable{{end}}`" + ` // Field
-    {{- if .ForeignKey}}
-    // Foreign key relation
-    {{.Name}}ID {{.Type}} ` + "`db:\"{{.ForeignKey}}\"`" + `
-    {{- end}}
-    {{- end}}
-}
+import "time"
 
-func New{{.EntityName}}() *{{.EntityName}} {
-    return &{{.EntityName}}{}
+// {{.EntityName}} represents the database model for the table "{{.TableName}}"
+type {{.EntityName}} struct {
+    ID        string    ` + "`db:\"id\"`" + ` // Primary key
+    CreatedAt time.Time ` + "`db:\"created_at\"`" + ` // Timestamp for when this record was created
+    UpdatedAt time.Time ` + "`db:\"updated_at\"`" + ` // Timestamp for when this record was last updated
+    {{- range .Fields}}
+    {{.Name}} {{if eq .Type "time.Time"}}*{{end}}{{.Type}} ` + "`db:\"{{lower .Name}}\"{{if eq .IsNullable \"yes\"}},omitempty{{end}}`" + ` // Field
+    {{if .ForeignKey}}
+    {{.Name}}ID string ` + "`db:\"{{lower .ForeignKey}}\"`" + ` // Foreign key to {{.ForeignKey}}
+    {{end}}
+    {{- end}}
 }
 `
-    tmpl, err := template.New("model").Parse(modelTemplate)
+    tmpl, err := template.New("model").Funcs(template.FuncMap{
+        "lower": strings.ToLower,
+    }).Parse(modelTemplate)
     if err != nil {
         return err
     }
 
-    modelFile, err := os.Create(fmt.Sprintf("models/%s.go", strings.ToLower(entityName)))
+    modelFile, err := os.Create(fmt.Sprintf("models/%s_model.go", strings.ToLower(entityName)))
     if err != nil {
         return err
     }
@@ -116,58 +119,90 @@ func New{{.EntityName}}() *{{.EntityName}} {
 
     return tmpl.Execute(modelFile, map[string]interface{}{
         "EntityName": entityName,
+        "TableName": tableName,
         "Fields":     fields,
     })
 }
 
 func generateRepository(entityName, tableName string, fields []Field) error {
-    repoTemplate := `package repository
+    repoTemplate := `package repositories
 
 import (
+    "context"
     "database/sql"
-    "log"
     "gyad/models"
 )
 
+// {{.EntityName}}Repository provides methods to perform CRUD operations on {{.EntityName}} entities.
 type {{.EntityName}}Repository struct {
     db *sql.DB
 }
 
+// New{{.EntityName}}Repository creates a new instance of {{.EntityName}}Repository
 func New{{.EntityName}}Repository(db *sql.DB) *{{.EntityName}}Repository {
     return &{{.EntityName}}Repository{db: db}
 }
 
-func (r *{{.EntityName}}Repository) Create(m *models.{{.EntityName}}) error {
-    // Insert SQL code here
-    return nil
+// Create inserts a new {{.EntityName}} into the database, setting ID, created_at, and updated_at automatically
+func (r *{{.EntityName}}Repository) Create(ctx context.Context, m *models.{{.EntityName}}) error {
+    query := "INSERT INTO {{.TableName}} ({{range .Fields}}{{.Name}}, {{end}}created_at, updated_at) VALUES ({{range .Fields}}?, {{end}}NOW(), NOW())"
+    _, err := r.db.ExecContext(ctx, query, {{range .Fields}}m.{{.Name}}, {{end}})
+    return err
 }
 
-func (r *{{.EntityName}}Repository) Update(m *models.{{.EntityName}}) error {
-    // Update SQL code here
-    return nil
+// Update modifies an existing {{.EntityName}} in the database
+func (r *{{.EntityName}}Repository) Update(ctx context.Context, m *models.{{.EntityName}}) error {
+    query := "UPDATE {{.TableName}} SET {{range .Fields}}{{.Name}} = ?, {{end}}updated_at = NOW() WHERE id = ?"
+    _, err := r.db.ExecContext(ctx, query, {{range .Fields}}m.{{.Name}}, {{end}}m.ID)
+    return err
 }
 
-func (r *{{.EntityName}}Repository) Delete(id string) error {
-    // Delete SQL code here
-    return nil
+// Delete removes a {{.EntityName}} from the database
+func (r *{{.EntityName}}Repository) Delete(ctx context.Context, id string) error {
+    query := "DELETE FROM {{.TableName}} WHERE id = ?"
+    _, err := r.db.ExecContext(ctx, query, id)
+    return err
 }
 
-func (r *{{.EntityName}}Repository) GetAll() ([]*models.{{.EntityName}}, error) {
-    // GetAll SQL code here
-    return nil
+// GetAll retrieves all {{.EntityName}} entities from the database
+func (r *{{.EntityName}}Repository) GetAll(ctx context.Context) ([]*models.{{.EntityName}}, error) {
+    query := "SELECT * FROM {{.TableName}}"
+    rows, err := r.db.QueryContext(ctx, query)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var results []*models.{{.EntityName}}
+    for rows.Next() {
+        var m models.{{.EntityName}}
+        if err := rows.Scan(&m); err != nil {
+            return nil, err
+        }
+        results = append(results, &m)
+    }
+    return results, nil
 }
 
-func (r *{{.EntityName}}Repository) GetByID(id string) (*models.{{.EntityName}}, error) {
-    // GetByID SQL code here
-    return nil
+// GetByID retrieves a specific {{.EntityName}} by ID from the database
+func (r *{{.EntityName}}Repository) GetByID(ctx context.Context, id string) (*models.{{.EntityName}}, error) {
+    query := "SELECT * FROM {{.TableName}} WHERE id = ?"
+    var m models.{{.EntityName}}
+    err := r.db.QueryRowContext(ctx, query, id).Scan(&m)
+    if err != nil {
+        return nil, err
+    }
+    return &m, nil
 }
 `
-    tmpl, err := template.New("repository").Parse(repoTemplate)
+    tmpl, err := template.New("repository").Funcs(template.FuncMap{
+        "lower": strings.ToLower,
+    }).Parse(repoTemplate)
     if err != nil {
         return err
     }
 
-    repoFile, err := os.Create(fmt.Sprintf("repository/%s_repository.go", strings.ToLower(entityName)))
+    repoFile, err := os.Create(fmt.Sprintf("repositories/%s_repository.go", strings.ToLower(entityName)))
     if err != nil {
         return err
     }
@@ -176,5 +211,6 @@ func (r *{{.EntityName}}Repository) GetByID(id string) (*models.{{.EntityName}},
     return tmpl.Execute(repoFile, map[string]interface{}{
         "EntityName": entityName,
         "TableName":  tableName,
+        "Fields":     fields,
     })
 }

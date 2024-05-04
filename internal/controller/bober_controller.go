@@ -1,17 +1,40 @@
 package controller
 
 import (
+	"gyad/internal/repository"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type BoberController struct {
     BaseController
+    BoberRepo repository.BoberRepository
 }
 
-func NewBoberController() *BoberController {
-    return &BoberController{}
+func NewBoberController(repo repository.BoberRepository) *BoberController {
+    return &BoberController{
+        BoberRepo: repo,
+    }
 }
 
-func (bc *BoberController) GetBober(w http.ResponseWriter, r *http.Request) {
-    bc.SendJSONResponse(w, http.StatusOK, "bobers", nil)
+func (c *BoberController) GetAllBobers(w http.ResponseWriter, r *http.Request) {
+    Bobers, err := c.BoberRepo.List(r.Context())
+    if err != nil {
+        c.SendJSONResponse(w, http.StatusInternalServerError, nil, err)
+        return
+    }
+    c.SendJSONResponse(w, http.StatusOK, Bobers, nil)
+}
+
+func (c *BoberController) GetBoberByID(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    id := vars["id"] 
+    
+    Bober, err := c.BoberRepo.FindByID(r.Context(), id)
+    if err != nil {
+        c.SendJSONResponse(w, http.StatusNotFound, nil, err)
+        return
+    }
+    c.SendJSONResponse(w, http.StatusOK, Bober, nil)
 }

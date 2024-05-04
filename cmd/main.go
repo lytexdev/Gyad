@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"gyad/internal/database"
+	"gyad/internal/repository"
 	"gyad/internal/server"
+
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -20,7 +22,8 @@ func main() {
 	db.Connect()
 	defer db.Close()
 
-	serverInstance := server.StartServer(db.Conn)
+	repoFactory := repository.NewRepositoryFactory(db)
+	serverInstance := server.StartServer(db.Conn, repoFactory)
 	router := serverInstance.Router
 	corsHandler := setupCors(router)
 	URL := os.Getenv("URL")
@@ -28,6 +31,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(URL, corsHandler))
 }
 
+// setupCors sets up the CORS middleware for the server
 func setupCors(router *mux.Router) http.Handler {
 	corsWrapper := cors.New(cors.Options{
 		AllowedMethods: []string{"GET", "POST", "FETCH", "DELETE", "OPTIONS"},
