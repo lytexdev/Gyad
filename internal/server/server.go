@@ -1,27 +1,26 @@
 package server
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
+	"xorm.io/xorm"
+	"github.com/gorilla/mux"
 )
 
 type Server struct {
-	Router *http.ServeMux
-    dbConn *sql.DB
+	Router *mux.Router
+	Engine *xorm.Engine
 }
 
-func NewServer(db *sql.DB) *Server {
-	fmt.Println("Creating new server")
+// StartServer creates a new server instance
+func StartServer(engine *xorm.Engine) *Server {
+	fmt.Println("Starting HTTP server...")
+	router := mux.NewRouter()
 	server := &Server{
-		Router: http.NewServeMux(),
-		dbConn: db,
+		Router: router,
+		Engine: engine,
 	}
-	ConfigureRoutes(server.Router)
-	return server
-}
+	ConfigureRoutes(router, engine)
 
-func (s *Server) Run(port string) {
-	log.Fatal(http.ListenAndServe(port, s.Router))
+	fmt.Println("Server started successfully!")
+	return server
 }
