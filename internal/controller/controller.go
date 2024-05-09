@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// BaseController is the base for all controllers
 type BaseController struct{}
 
 // SendJSONResponse sends a JSON response to the client
