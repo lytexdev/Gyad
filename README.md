@@ -55,6 +55,3 @@ go run ./migration migrate bober
 ```bash
 go run ./migration rollback bober
 ```
-
-## License
-Distributed under the Mozilla Public License - see the [LICENSE](LICENSE) file for details.
