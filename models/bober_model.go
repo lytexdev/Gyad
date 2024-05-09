@@ -1,9 +1,8 @@
 package models
 
-import (
-	"time"
-)
+import "time"
 
+// Example model for a Bober
 type Bober struct {
 	ID        string    `xorm:"pk uuid 'id'"`
 	Name      string    `xorm:"varchar(255) 'name'"`

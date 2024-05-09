@@ -40,6 +40,7 @@ func main() {
 	}
 }
 
+// createMigration creates a new migration file
 func createMigration(migrationName string) {
 	migrationsDir := "./migrations"
 	timestamp := time.Now().Format("20060102150405")
@@ -66,6 +67,7 @@ func createMigration(migrationName string) {
 	fmt.Printf("Migration created at: %s\n", filename)
 }
 
+// migrate applies all migrations or a specific migration
 func migrate(argument string) {
 	connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_NAME"), os.Getenv("DB_SSL"))
@@ -96,6 +98,7 @@ func migrate(argument string) {
 	}
 }
 
+// rollbackMigration rolls back a specific migration
 func rollbackMigration(argument string) {
     connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
         os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_NAME"), os.Getenv("DB_SSL"))
@@ -135,6 +138,7 @@ func rollbackMigration(argument string) {
     }
 }
 
+// executeSQLFile executes the SQL statements in a file
 func executeSQLFile(db *sql.DB, filepath string) error {
 	content, err := os.ReadFile(filepath)
 	if err != nil {
@@ -179,6 +183,7 @@ func executeSQLDown(db *sql.DB, filepath string) error {
 	return nil
 }
 
+// askForConfirmation asks the user for confirmation
 func askForConfirmation(question string) bool {
     fmt.Println(question + " [y/n]: ")
 
@@ -190,5 +195,5 @@ func askForConfirmation(question string) bool {
         return false
     }
     response = strings.TrimSpace(response)
-    return strings.ToLower(response) == "y" || strings.ToLower(response) == "yes"
+    return strings.ToLower(response) == "y" || strings.ToLower(response) == "yes" || strings.ToLower(response) == "j"
 }
