@@ -1,10 +1,9 @@
 package main
 
 import (
-	"gyad/internal/database"
-	"gyad/internal/repository"
-	"gyad/internal/server"
-
+	"github.com/ximmanuel/Gyad/internal/database"
+	"github.com/ximmanuel/Gyad/internal/server"
+	
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,18 +15,20 @@ import (
 )
 
 func main() {
-	printASCCI()
+	printASCII()
 
-	db := database.NewDatabase()
-	db.Connect()
+	db, err := database.NewEngine()
+	if err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
 	defer db.Close()
 
-	repoFactory := repository.NewRepositoryFactory(db)
-	serverInstance := server.StartServer(db.Conn, repoFactory)
+	serverInstance := server.StartServer(db.Engine)
 	router := serverInstance.Router
-	corsHandler := setupCors(router)
-	URL := os.Getenv("URL")
 
+	corsHandler := setupCors(router)
+
+	URL := os.Getenv("URL")
 	log.Fatal(http.ListenAndServe(URL, corsHandler))
 }
 
@@ -41,13 +42,13 @@ func setupCors(router *mux.Router) http.Handler {
 	return corsWrapper.Handler(router)
 }
 
-// printASCCI prints the ASCII logo from lytexmedia
-func printASCCI() {
-	 content, err := ioutil.ReadFile("ascii-logo.txt")
-	 if err != nil {
-		 fmt.Println("LYTEX MEDIA")
-		 return
-	 }
+// printASCII prints the ASCII logo
+func printASCII() {
+	content, err := ioutil.ReadFile("ascii-logo.txt")
+	if err != nil {
+		fmt.Println("LYTEX MEDIA")
+		return
+	}
 
-	 fmt.Println(string(content))
+	fmt.Println(string(content))
 }

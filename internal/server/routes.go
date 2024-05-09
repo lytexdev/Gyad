@@ -1,14 +1,16 @@
 package server
 
 import (
-	"gyad/internal/controller"
-	"gyad/internal/repository"
+	"github.com/ximmanuel/Gyad/internal/controller"
+
 	"github.com/gorilla/mux"
+	"xorm.io/xorm"
 )
 
-func ConfigureRoutes(router *mux.Router, factory *repository.RepositoryFactory) {
-    boberController := controller.NewBoberController(factory.CreateBoberRepository())
-    router.HandleFunc("/api/bobers", boberController.GetAllBobers).Methods("GET")
+// ConfigureRoutes sets up the routes for the server
+func ConfigureRoutes(router *mux.Router, engine *xorm.Engine) {
+	boberController := controller.NewBoberController(engine)
+	router.HandleFunc("/api/bober", boberController.GetAllBobers).Methods("GET")
 	router.HandleFunc("/api/bober/{id}", boberController.GetBoberByID).Methods("GET")
-
+	router.HandleFunc("/api/bober/create", boberController.CreateTestBober).Methods("POST")
 }

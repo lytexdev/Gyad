@@ -1,40 +1,68 @@
 package controller
 
 import (
-	"gyad/internal/repository"
+	"github.com/ximmanuel/Gyad/models"
+
+	"log"
 	"net/http"
 
+	"xorm.io/xorm"
+
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
 type BoberController struct {
-    BaseController
-    BoberRepo repository.BobersRepository
+	BaseController
+	Engine *xorm.Engine
 }
 
-func NewBoberController(repo repository.BobersRepository) *BoberController {
-    return &BoberController{
-        BoberRepo: repo,
-    }
+func NewBoberController(engine *xorm.Engine) *BoberController {
+	return &BoberController{
+		Engine: engine,
+	}
 }
 
-func (c *BoberController) GetAllBobers(w http.ResponseWriter, r *http.Request) {
-    Bobers, err := c.BoberRepo.List(r.Context())
-    if err != nil {
-        c.SendJSONResponse(w, http.StatusInternalServerError, nil, err)
-        return
-    }
-    c.SendJSONResponse(w, http.StatusOK, Bobers, nil)
+func (uc *BoberController) GetAllBobers(w http.ResponseWriter, r *http.Request) {
+	var bober []models.Bober
+	err := uc.Engine.Find(&bober)
+	if err != nil {
+		uc.SendJSONResponse(w, http.StatusInternalServerError, nil, err)
+		return
+	}
+
+	uc.SendJSONResponse(w, http.StatusOK, bober, nil)
 }
 
-func (c *BoberController) GetBoberByID(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    id := vars["id"] 
-    
-    Bober, err := c.BoberRepo.FindByID(r.Context(), id)
-    if err != nil {
-        c.SendJSONResponse(w, http.StatusNotFound, nil, err)
-        return
-    }
-    c.SendJSONResponse(w, http.StatusOK, Bober, nil)
+func (uc *BoberController) GetBoberByID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	bober := &models.Bober{}
+	has, err := uc.Engine.ID(id).Get(bober)
+	if err != nil {
+		uc.SendJSONResponse(w, http.StatusInternalServerError, nil, err)
+		return
+	}
+	if !has {
+		uc.SendJSONResponse(w, http.StatusNotFound, nil, nil)
+		return
+	}
+
+	uc.SendJSONResponse(w, http.StatusOK, bober, nil)
+}
+
+func (uc *BoberController) CreateTestBober(w http.ResponseWriter, r *http.Request) {
+	bober := &models.Bober{
+		ID:   uuid.New().String(),
+		Name: "Boberino",
+		Age:  3,
+	}
+	log.Printf("Attempting to create bober: %+v", bober)
+	_, err := uc.Engine.Insert(bober)
+	if err != nil {
+		log.Printf("Error creating bober: %v", err)
+		uc.SendJSONResponse(w, http.StatusInternalServerError, nil, err)
+		return
+	}
+	uc.SendJSONResponse(w, http.StatusCreated, bober, nil)
 }

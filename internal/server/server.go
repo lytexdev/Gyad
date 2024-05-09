@@ -1,26 +1,25 @@
 package server
 
 import (
-	"database/sql"
 	"fmt"
-	"gyad/internal/repository"
-
+	"xorm.io/xorm"
 	"github.com/gorilla/mux"
 )
 
 type Server struct {
 	Router *mux.Router
-	dbConn *sql.DB
+	Engine *xorm.Engine
 }
 
-func StartServer(db *sql.DB, repoFactory *repository.RepositoryFactory) *Server {
+// StartServer creates a new server instance
+func StartServer(engine *xorm.Engine) *Server {
 	fmt.Println("Starting HTTP server...")
 	router := mux.NewRouter()
 	server := &Server{
 		Router: router,
-		dbConn: db,
+		Engine: engine,
 	}
-	ConfigureRoutes(router, repoFactory)
+	ConfigureRoutes(router, engine)
 
 	fmt.Println("Server started successfully!")
 	return server

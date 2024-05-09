@@ -5,8 +5,8 @@ A lightweight backend system built in Go designed to simplify the management and
 
 ## Features
 - **Database Migrations**: Easily create, manage, and rollback database migrations using simple command-line operations.
-- ***TODO*: API Controllers**: Facilitate and manage RESTful APIs that enable clients to interact with the backend.
-- ***TODO*: DAL**: A Database Abstraction Layer that abstracts and simplifies database interactions. 
+- **ORM**: A simple ORM that allows you to interact with the database using Go structs [(XORM)](https://xorm.io/).
+- **API Controllers**: Facilitate and manage RESTful APIs that enable clients to interact with the backend.
 
 ## Prerequisites
 - Go (version 1.15 or higher)
@@ -20,7 +20,7 @@ git clone git@github.com:ximmanuel/Gyad.git
 
 **Step 2: Run postgres docker container**
 ```bash
-docker run --name postgresql -p 5432:5432 -e POSTGRES_PASSWORD=123456 -d postgres
+docker run --name postgresql -p 5432:5432 -e POSTGRES_PASSWORD=changeMe -d postgres
 ```
 
 **Step 3: Rename the `.env.example` file to `.env` and adjust the values**
