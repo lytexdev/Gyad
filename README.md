@@ -8,8 +8,21 @@ A lightweight backend system built in Go designed to simplify the management and
 - **ORM**: A simple ORM that allows you to interact with the database using Go structs [(XORM)](https://xorm.io/).
 - **API Controllers**: Facilitate and manage RESTful APIs that enable clients to interact with the backend.
 
+## Example model
+```go
+import "time"
+
+type Bober struct {
+	ID        string    `xorm:"pk uuid 'id'"`
+	Name      string    `xorm:"varchar(255) 'name'"`
+	Age       int       `xorm:"int 'age'"`
+	CreatedAt time.Time `xorm:"created"`
+	UpdatedAt time.Time `xorm:"updated"`
+}
+```
+
 ## Prerequisites
-- Go (version 1.15 or higher)
+- Go (version 1.22 or higher)
 - A PostgreSQL Database
 
 ## Installation
@@ -37,21 +50,21 @@ go run cmd/main.go
 
 **Create Migration**
 ```bash
-go run ./migration create bober
+./migration create bober
 ```
 
 **Run all migrations**:
 ```bash
-go run ./migration migrate all
+./migration migrate all
 ```
 Migrations are executed one after the other based on the timestamps.
 
 **Run specific migratrion**:
 ```bash
-go run ./migration migrate bober
+./migration migrate bober
 ```
 
 **Rollback specific migration**:
 ```bash
-go run ./migration rollback bober
+./migration rollback bober
 ```
