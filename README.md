@@ -28,7 +28,7 @@ type Bober struct {
 ## Installation
 **Step 1: Clone the repository**
 ```bash
-git clone git@github.com:ximmanuel/Gyad.git
+git clone https://github.com/ximmanuel/Gyad.git
 ```
 
 **Step 2: Run postgres docker container**
