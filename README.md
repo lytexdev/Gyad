@@ -28,7 +28,7 @@ type Bober struct {
 ## Installation
 **Step 1: Clone the repository**
 ```bash
-git clone https://github.com/ximmanuel/Gyad.git
+git clone https://github.com/lytexdev/Gyad.git
 ```
 
 **Step 2: Rename the `.env.example` file to `.env` and adjust the values**
